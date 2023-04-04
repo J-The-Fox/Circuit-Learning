@@ -3,6 +3,9 @@ Button Module
 
 This Module Is Used To Create Buttons In pygame
 """
+
+# TODO: Move This Into The input Module
+
 # Built-In Modules
 from typing import Any, Callable
 # External Modules
@@ -50,7 +53,6 @@ class Button:
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
             for event in pygame.event.get():
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    # pressed = True
                     self.currentColor = self.pressColor
                     if self.command is not None:
                         eval(self.command + "()")
@@ -78,9 +80,9 @@ class Button:
     def getButtonName(self) -> str:
         return self.text
 
-class Toggle_Button:
+class ToggleButton:
 
-    def __init__(self, location: tuple, size: tuple, text: str = "Button", altText: str = None, textSize: int = 20, textFont:  str = None, textColor: str = "black", color: str = "white", toggleColor: str = "grey", hoverColor: str = "black", borderRadius: int | float = 5) -> None:
+    def __init__(self, command: Callable[..., Any], location: tuple, size: tuple, text: str = "Button", altText: str = None, textSize: int = 20, textFont:  str = None, textColor: str = "black", color: str = "white", toggleColor: str = "grey", hoverColor: str = "black", borderRadius: int | float = 5) -> None:
         """
         Creates A New toggleButton
         """

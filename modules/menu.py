@@ -4,6 +4,8 @@ import sys
 # External Modules
 import pygame
 
+# TODO: Move This Into The input Module
+
 class Radio():
 
     def __init__(self, name: str, num_options: int, location: tuple, size: tuple, color: str = "white", hoverColor: str = "black", borderRadius: int | float = 5) -> None:
