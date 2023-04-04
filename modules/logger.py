@@ -94,8 +94,8 @@ class Logger():
 
     # Log Mode
     LOGDISABLED = 0
-    LOGTOFILE = 1
-    LOGTOTERM = 2
+    LOGTOTERM = 1
+    LOGTOFILE = 2
     LOGTOTERMANDFILE = 3
 
     # Write Mode
@@ -212,7 +212,7 @@ class Logger():
         if self.mode == 2:
             with open(self.log_file_path, "a") as logfile:
                 if self.use_color is True:
-                    logfile.write(output_string.join(format_list).replace(colorama.Fore.WHITE, "").replace(colorama.Fore.BLUE, "").replace(colorama.Fore.CYAN, "").replace(colorama.Fore.LIGHTYELLOW_EX, "").replace(colorama.Fore.LIGHTRED_EX, "").replace("[39m", "") + "\n")
+                    logfile.write(output_string.join(format_list).replace(colorama.Fore.RESET, "").replace(colorama.Fore.WHITE, "").replace(colorama.Fore.BLUE, "").replace(colorama.Fore.CYAN, "").replace(colorama.Fore.LIGHTYELLOW_EX, "").replace(colorama.Fore.LIGHTRED_EX, "").replace(colorama.Fore.LIGHTBLACK_EX, "").replace(colorama.Fore.LIGHTGREEN_EX, "").replace(colorama.Fore.LIGHTMAGENTA_EX, "") + "\n")
                 else:
                     logfile.write(output_string.join(format_list) + "\n")
                 if extra_msg is not None and lvl == "NOTICE" or extra_msg is not None and lvl == "WARN" or extra_msg is not None and lvl == "WARNING" or extra_msg is not None and lvl == "ERROR" or extra_msg is not None and lvl == "CRITICAL":
@@ -222,7 +222,7 @@ class Logger():
         if self.mode == 3:
             with open(self.log_file_path, "a") as logfile:
                 if self.use_color is True:
-                    logfile.write(output_string.join(format_list).replace(colorama.Fore.WHITE, "").replace(colorama.Fore.BLUE, "").replace(colorama.Fore.CYAN, "").replace(colorama.Fore.LIGHTYELLOW_EX, "").replace(colorama.Fore.LIGHTRED_EX, "").replace("[39m", "") + "\n")
+                    logfile.write(output_string.join(format_list).replace(colorama.Fore.RESET, "").replace(colorama.Fore.WHITE, "").replace(colorama.Fore.BLUE, "").replace(colorama.Fore.CYAN, "").replace(colorama.Fore.LIGHTYELLOW_EX, "").replace(colorama.Fore.LIGHTRED_EX, "").replace(colorama.Fore.LIGHTBLACK_EX, "").replace(colorama.Fore.LIGHTGREEN_EX, "").replace(colorama.Fore.LIGHTMAGENTA_EX, "") + "\n")
                 else:
                     logfile.write(output_string.join(format_list) + "\n")
                 print(output_string.join(format_list))
