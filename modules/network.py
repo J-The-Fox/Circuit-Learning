@@ -47,7 +47,7 @@ def check_connection():
     # Try To Connect To The Internet, If It Fails, Return False, Else, Return True
     try:
         requests.get("https://stackoverflow.com") # Why Not Use stackoverflow.com?
-        logging.write(f"[network]: Succesfully Reached Out To URL 'https://stackoverflow.com'", lvl=logger.Logger.INFO)
+        logging.write(f"[network]: Succesfully Reached Out To URL 'https://stackoverflow.com'", lvl=logger.Logger.DEBUG)
         return True # Return True If There Is No Error
     except requests.exceptions.ConnectionError:
         logging.write(f"[network]: Netork Error.", lvl=logger.Logger.ERROR, extra_msg="Could Not Reach URL: https://stackoverflow.com") # Log The Error If There Is One
