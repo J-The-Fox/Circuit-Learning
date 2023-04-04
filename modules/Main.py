@@ -29,6 +29,8 @@ import network
 # -----=====[Set Up Configuration]=====----- #
 logging_config = configparser.ConfigParser()
 logging_config.read(os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "configuration", "Logger.conf"))
+debug_config = configparser.ConfigParser()
+debug_config.read(os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "configuration", "Debug.conf"))
 main_config = configparser.ConfigParser()
 main_config.read(os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "configuration", "Main.conf"))
 
@@ -49,6 +51,7 @@ logging = logger.Logger(
 )
 
 logging.init(True) # Initialize The Logger
+logging.write("Starting Circuit Learning...", lvl=logger.Logger.INFO)
 
 # -----=====[Check For Missing Modules]=====----- #
 if len(_IMPORT_ERROR) > 0:
@@ -64,6 +67,8 @@ if len(_IMPORT_ERROR) > 0:
         logging.write("Can Not Continue Without The Missing Modules. Exiting...", lvl=logger.Logger.CRITICAL)
         sys.exit()
 
+del _IMPORT_ERROR # Delete The Temporary Variable To Save Memory
+
 pygame.init()
 
 # -----=====[Set Up Debugging]=====----- #
@@ -71,11 +76,11 @@ pygame.init()
 _debug = debug.Debug(
     font=pygame.font.Font(os.path.join(os.path.dirname(__file__), "fonts", "tokeely-brookings", "Tokeely_Brookings.ttf").replace("modules", "docs"), 10),
     textSpacing=10,
-    textColor="Orange",
+    textColor=(243, 156, 41),
     backgroundTextColor="Black",
     debugTextScreenLocation="Top left",
     debugLogScreenLocation="Top right",
-    logfile=os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "logs", "Circuit Learning.log")
+    logfile=os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "logs", "Circuit_Learning.log")
 )
 
 
@@ -90,6 +95,40 @@ class Circuit_Learning():
         self.screen = pygame.display.set_mode((self.screenInfo.current_w, self.screenInfo.current_h), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
         self.parts = []
+
+        # Settings (Pulled From Settings.json)
+        # NOTE: This Is Means That In Order For The Settings To Be Changed, The Game Must Be Restarted
+        with open(os.path.join(os.path.dirname(__file__), "configuration", "settings.json").replace("modules", "docs"), "r") as f:
+            _game_settings = json.load(f)
+            f.close()
+        
+        # Set Themes Here
+        _theme = _game_settings["theme"]
+        if _theme == "dark":
+            logging.write("Theme: Dark", lvl=logger.Logger.INFO)
+            self.backgroundColor = (20, 20, 20)
+            self.backgroundColor2 = (25, 25, 25)
+            self.buttonColor = (40, 40, 40)
+            self.buttonHoverColor = (50, 50, 50)
+            self.textColor = (255, 255, 255)
+        elif _theme == "light":
+            logging.write("Theme: Light", lvl=logger.Logger.INFO)
+            self.backgroundColor = (235, 235, 235)
+            self.backgroundColor2 = (230, 230, 230)
+            self.buttonColor = (215, 215, 215)
+            self.buttonHoverColor = (205, 205, 205)
+            self.textColor = (0, 0, 0)
+
+        _accentColor = str(_game_settings["accentColor"]).split(",")
+        self.accentColor = (int(_accentColor[0]), int(_accentColor[1]), int(_accentColor[2]))
+        logging.write("Accent Color: " + str(self.accentColor), lvl=logger.Logger.INFO)
+
+        self.sound = bool(_game_settings["sound"])
+        logging.write("Sound Enabled: " + str(self.sound), lvl=logger.Logger.INFO)
+        self.music = bool(_game_settings["music"])
+        logging.write("Music Enabled: " + str(self.music), lvl=logger.Logger.INFO)
+
+        del _accentColor, _game_settings, _theme # Delete The Temporary Variables To Save Memory
 
     # def get_parts(self):
     #     parts = []
@@ -110,15 +149,15 @@ class Circuit_Learning():
     def start_screen(self):
         _font = pygame.font.Font(os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), 100)
         _buttons = button.ButtonGroup("Start Screen Buttons")
-        _buttons.append(button.Button(None, (self.screen.get_width() / 2 - 150 / 2, 400), (200, 100), "Start", 30, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=(243, 156, 41), color=(40, 40, 40), hoverColor=(50, 50, 50), borderRadius=15))
-        _buttons.append(button.Button(None, (self.screen.get_width() / 2 - 150 / 2, 600), (200, 100), "Settings", 30, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=(243, 156, 41), color=(40, 40, 40), hoverColor=(50, 50, 50), borderRadius=15))
-        _buttons.append(button.Button(None, (self.screen.get_width() / 2 - 150 / 2, 500), (200, 100), "Quit", 30, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=(243, 156, 41), color=(40, 40, 40), hoverColor=(50, 50, 50), borderRadius=15))
+        _buttons.append(button.Button(None, (self.screen.get_width() / 2 - 150 / 2, 400), (200, 100), "Start", 30, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=self.accentColor, color=self.buttonColor, hoverColor=self.buttonHoverColor, borderRadius=15))
+        _buttons.append(button.Button(None, (self.screen.get_width() / 2 - 150 / 2, 600), (200, 100), "Settings", 30, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=self.accentColor, color=self.buttonColor, hoverColor=self.buttonHoverColor, borderRadius=15))
+        _buttons.append(button.Button(None, (self.screen.get_width() / 2 - 150 / 2, 500), (200, 100), "Quit", 30, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=self.accentColor, color=self.buttonColor, hoverColor=self.buttonHoverColor, borderRadius=15))
         while True:
-            self.screen.fill((25, 25, 25))
+            self.screen.fill(self.backgroundColor)
             # Draw A Pattern On The Screen For The Background
             for x in range(0, self.screen.get_width(), 10):
                 for y in range(0, self.screen.get_height(), 10):
-                    pygame.draw.rect(self.screen, (20, 20, 20), pygame.rect.Rect(x, y, 5, 5))
+                    pygame.draw.rect(self.screen, (self.backgroundColor2), pygame.rect.Rect(x, y, 5, 5))
 
             # Buttons
             _buttons.displayButtons()
@@ -127,16 +166,18 @@ class Circuit_Learning():
             _buttons.setPos("Quit", (self.screen.get_width() / 2 - 150 / 2, self.screen.get_height() - 150))
             if _buttons.getPressMode("Start"):
                 # logging.write("Starting Game", logger.Logger.INFO)
+                logging.write("Entering main()", logging.DEBUG)
                 self.main()
             elif _buttons.getPressMode("Quit"):
                 logging.close(0)
                 pygame.quit()
                 sys.exit()
             elif _buttons.getPressMode("Settings"):
+                logging.write("Entering settings()", logging.DEBUG)
                 self.settings()
 
             # Text
-            self.screen.blit(_font.render("Circuit Learning", True, (255, 255, 255)), (self.screen.get_width() / 2 - _font.size("Circuit Learning")[0] / 2, self.screen.get_height() / 3.5 - _font.size("Circuit Learning")[1] / 2))
+            self.screen.blit(_font.render("Circuit Learning", True, self.textColor), (self.screen.get_width() / 2 - _font.size("Circuit Learning")[0] / 2, self.screen.get_height() / 3.5 - _font.size("Circuit Learning")[1] / 2))
 
             # Pygame Events
             for event in pygame.event.get():
@@ -164,16 +205,16 @@ class Circuit_Learning():
         pauseMenu.center = (self.screen.get_width() / 2, self.screen.get_height() / 2)
         pauseButtons = button.ButtonGroup("pauseButtons")
         # pauseButtons.append(button.Button(None, (self.screen.get_width() / 2 - 50, 350), (100, 50), "Return", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=(243, 156, 41), color=(40, 40, 40), hoverColor=(50, 50, 50), borderRadius=15))
-        pauseButtons.append(button.Button(None, (self.screen.get_width() / 2 - 50, 425), (100, 50), "Save", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=(243, 156, 41), color=(40, 40, 40), hoverColor=(50, 50, 50), borderRadius=15))
-        pauseButtons.append(button.Button(None, (self.screen.get_width() / 2 - 50, 500), (100, 50), "Quit", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=(243, 156, 41), color=(40, 40, 40), hoverColor=(50, 50, 50), borderRadius=15))
+        pauseButtons.append(button.Button(None, (self.screen.get_width() / 2 - 50, 425), (100, 50), "Save", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=self.accentColor, color=self.buttonColor, hoverColor=self.buttonHoverColor, borderRadius=15))
+        pauseButtons.append(button.Button(None, (self.screen.get_width() / 2 - 50, 500), (100, 50), "Quit", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=self.accentColor, color=self.buttonColor, hoverColor=self.buttonHoverColor, borderRadius=15))
 
         while True:
 
-            self.screen.fill((25, 25, 25))
+            self.screen.fill(self.backgroundColor)
             # Draw A Pattern On The Screen For The Background
             for x in range(0, self.screen.get_width(), 10):
                 for y in range(0, self.screen.get_height(), 10):
-                    pygame.draw.rect(self.screen, (20, 20, 20), pygame.rect.Rect(x, y, 5, 5))
+                    pygame.draw.rect(self.screen, self.backgroundColor2, pygame.rect.Rect(x, y, 5, 5))
 
             # Draw A Rectangle For The Different Components
             # Make The Part Storage Rectangle Expandable And Collapsible When The Mouse Is Hovering Over It
@@ -228,6 +269,7 @@ class Circuit_Learning():
                 if pauseButtons.getPressMode("Save"):
                     pass # Will Be Implemented Later. Self Explanatory
                 if pauseButtons.getPressMode("Quit"):
+                    logging.write("Entering start_screen()", logging.DEBUG)
                     self.start_screen() # Plan On Having A Quit Confirmation Screen (I.E. Are You Sure You Want To Quit?)
 
             _debug.displayDebugText(True, [f"Current Date + Time: {datetime.datetime.now()}", f"Current Uptime: {round(time.perf_counter() - timer, 2)}", "", f"Ticks Per Second (TPS): {60}",  f"Frames Per Second (FPS): {round(self.clock.get_fps(), 2)}", "", f"Process PID: {os.getpid()}", f"RAM Usage: {psutil.Process(os.getpid()).memory_info()[0] / 1000000} Megabytes", f"Total RAM: {round((psutil.virtual_memory()[0] - psutil.virtual_memory()[0] / 8) / 1000000000, 2)} Gigabytes", f"Total Swap: {psutil.swap_memory()[0]} Bytes", f"Total Swap Used: {psutil.swap_memory()[0]} Bytes", f"CPU Usage: {psutil.cpu_percent()}%", "", f"Window Size: {self.screen.get_size()}", f"Mouse POS: {pygame.mouse.get_pos()}", f"Keys Pressed: N/A", f"Mouse Buttons: {pygame.mouse.get_pressed()}", "", f"Current Function: {inspect.stack()[0][3]}", "", f"Playing Music: {pygame.mixer_music.get_busy()}", f"Playing Sound: {pygame.mixer.get_busy()}", f"Is Paused: {paused}"])
@@ -236,21 +278,30 @@ class Circuit_Learning():
             pygame.display.update()
 
     def settings(self):
+        # Buttons
         menuButtons = button.ButtonGroup("menuButtons")
-        menuButtons.append(button.Button(None, (25, self.screen.get_height() - 75), (100, 50), "Back", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=(243, 156, 41), color=(40, 40, 40), hoverColor=(50, 50, 50), borderRadius=15))
-        menuButtons.append(button.Button(None, (self.screen.get_width() - 450, self.screen.get_height() - 75), (250, 50), "Check For Updates", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=(243, 156, 41), color=(40, 40, 40), hoverColor=(50, 50, 50), borderRadius=15))
-        menuButtons.append(button.Button(None, (self.screen.get_width() - 150, self.screen.get_height() - 75), (100, 50), "Apply", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=(243, 156, 41), color=(40, 40, 40), hoverColor=(50, 50, 50), borderRadius=15))
+        menuButtons.append(button.Button(None, (25, self.screen.get_height() - 75), (100, 50), "Back", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=self.accentColor, color=self.buttonColor, hoverColor=self.buttonHoverColor, borderRadius=15))
+        menuButtons.append(button.Button(None, (self.screen.get_width() - 500, self.screen.get_height() - 75), (250, 50), "Check For Updates", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=self.accentColor, color=self.buttonColor, hoverColor=self.buttonHoverColor, borderRadius=15))
+        menuButtons.append(button.Button(None, (self.screen.get_width() - 225, self.screen.get_height() - 75), (200, 50), "Apply Settings", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=self.accentColor, color=self.buttonColor, hoverColor=self.buttonHoverColor, borderRadius=15))
+        settingButtons = button.ButtonGroup("settingButtons")
+        settingButtons.append(button.ToggleButton(None, (self.screen.get_width() / 2 - 150 / 2, 800), (150, 75), "Test Button", "Test Button", 30, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), borderRadius=15))
         back_button = button.Button(None, (50, self.screen.get_height() - 100), (100, 50), "Back", 20, os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), textColor=(243, 156, 41), color=(40, 40, 40), hoverColor=(50, 50, 50), borderRadius=15)
+
+        # Text
         titleText = pygame.font.Font(os.path.join(os.path.dirname(__file__), "Tokeely_Brookings.ttf").replace("modules", "docs/fonts/tokeely-brookings"), 50)
+
+        # Backgrounds
         backgroundRect = pygame.rect.Rect(0, 0, self.screen.get_width() - 200, self.screen.get_height() - 200)
         backgroundRect.center = (self.screen.get_width() / 2, self.screen.get_height() / 2)
+
+        # Variables
         updating = False
         while True:
-            self.screen.fill((25, 25, 25))
+            self.screen.fill(self.backgroundColor)
             # Draw A Pattern On The Screen For The Background
             for x in range(0, self.screen.get_width(), 10):
                 for y in range(0, self.screen.get_height(), 10):
-                    pygame.draw.rect(self.screen, (20, 20, 20), pygame.rect.Rect(x, y, 5, 5))
+                    pygame.draw.rect(self.screen, self.backgroundColor2, pygame.rect.Rect(x, y, 5, 5))
 
             # Draw A Background For The Settings
             pygame.draw.rect(self.screen, (30, 30, 30), backgroundRect, 0, 15)
@@ -263,15 +314,17 @@ class Circuit_Learning():
             for each in menuButtons.getButtonNames():
                 if menuButtons.getPressMode(each):
                     if each == "Back":
+                        logging.write("Entering start_screen()", logging.DEBUG)
                         self.start_screen()
                     elif each == "Check For Updates" and not updating:
                         # Check For Updates
                         _thread.start_new_thread(self.check_for_updates, ()) # Start A New Thread To Check For Updates So The Game Doesn't Freeze
                         time.sleep(0.1) # Sleep For 0.1 Seconds So The Thread Can Start And The _thread._count() Function Can Update
                         updating = True # Set Updating To True So The Button Can't Be Pressed Again While It's Updating
-                    elif each == "Apply":
-                        # Apply The Settings
-                        pass
+                    elif each == "Apply Settings":
+                        self.apply_settings()
+
+            settingButtons.displayButtons()
 
             # Check If The Update Thread Is Done
             if _thread._count() < 1:
@@ -292,12 +345,6 @@ class Circuit_Learning():
             self.clock.tick(60)
             pygame.display.update()
 
-    def options(self):
-        """
-        Like Settings Except It Overlays The Game Screen
-        """
-        pass
-
     def check_for_updates(self):
         """
         Checks For Updates
@@ -316,6 +363,9 @@ class Circuit_Learning():
 
         # TODO: Use The Git API To Check For Updates
 
+        # Give Notice For Cached Updates
+        logging.write("Updates Downloaded Will Be Cached For Offline Use", logging.NOTICE)
+
         # Check For Python Updates
         logging.write("Checking For Python Module Updates...", logging.INFO)
         logging.write("Generating Outdated Modules List...", logging.INFO) # No Need To Clear This File In Cache Because It Will Be Overwritten Once An Online Check Is Done
@@ -324,14 +374,14 @@ class Circuit_Learning():
         # Check For Required Modules In The Outdated List As Well As Useful Modules (wheel, setuptools and pip)
         with open(os.path.join(os.path.dirname(__file__).replace("modules", "docs"), ".cache", "updates", "outdated_modules.txt"), "r") as f:
             for i, line in enumerate(f):
-                if "pygame" in line or "requests" in line or "psutil" in line:
-                    logging.write("Required Module Update Found: {}".format(line.split(" ")[0]), logging.INFO)
+                if "pygame" in line.split(" ")[0] or "requests" in line.split(" ")[0] or "psutil" in line.split(" ")[0]:
+                    logging.write("Found Required Module: {}".format(line.split(" ")[0]), logging.INFO)
                     logging.write("Updating Required Module: {}".format(line.split(" ")[0]), logging.INFO)
-                    os.system("python3 -m pip install --upgrade {} | tee -a {}".format(line.split(" ")[0], os.path.join(os.path.dirname(__file__).replace("modules", "docs"), ".cache", "updates", "outdated_modules.txt")))
-                elif "wheel" in line or "setuptools" in line or "pip" in line:
-                    logging.write("Useful Module Update Found: {}".format(line.split(" ")[0]), logging.WARN)
+                    os.system("python3 -m pip install --upgrade {} | tee -a {}".format(line.split(" ")[0],  os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "logs", "Circuit_Learning.log")))
+                elif "wheel" in line.split(" ")[0] or "setuptools" in line.split(" ")[0] or "pip" in line.split(" ")[0]:
+                    logging.write("Found Useful Module: {}".format(line.split(" ")[0]), logging.INFO)
                     logging.write("Updating Useful Module: {}".format(line.split(" ")[0]), logging.INFO)
-                    os.system("python3 -m pip install --upgrade {} | tee -a {}".format(line.split(" ")[0], os.path.join(os.path.dirname(__file__).replace("modules", "docs"), ".cache", "updates", "outdated_modules.txt")))
+                    os.system("python3 -m pip install --upgrade {} | tee -a {}".format(line.split(" ")[0], os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "logs", "Circuit_Learning.log")))
                 elif i >= 2:
                     logging.write("Found Module: {} But Skipping Upgrade".format(line.split(" ")[0]), logging.INFO)
         logging.write("Finished ", logging.INFO)
@@ -339,10 +389,16 @@ class Circuit_Learning():
 
     def apply_settings(self):
         """
-        Applies The Settings
+        Takes The Current State Of The Settings Menu And Applies Them To The Settings.json File  
+        Note: When Settings Are Applied, The Game Needs To Be Restarted For Them To Take Effect
+
+        Takes No Arguments
         """
 
-        pass
+        logging.write("Applying Settings...", logging.INFO)
+        #TODO: Open The Settings.json File And Apply The Settings
+        logging.write("Finished", logging.INFO)
+        logging.write("A Game Restart Is Required For The Settings To Take Effect", logging.NOTICE)
         
 
 if __name__ == "__main__":
