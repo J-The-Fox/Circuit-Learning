@@ -19,15 +19,16 @@ _logging_config.read(os.path.join(os.path.dirname(__file__).replace("modules", "
 # -----=====[Set Up Logging]=====----- #
 try:
     _log_path = _logging_config.get("File", "path") # Check If A Log File Path Is Set In The Config File
-except configparser.NoOptionError:
-    _log_path = None
+except configparser.NoOptionError: # If The Path Is Not Set, Use The Default Path
+    _log_path = os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "logs")
 
-logging = logger.Logger(
+_logging = logger.Logger(
     mode=_logging_config.getint("General", "logMode"),
     write_mode=_logging_config.get("General", "writeMode"),
     format=str(_logging_config.get("General", "format")).split("/"), # Turn The String Into A List Using "/" As The Delimiter
+    date_format=_logging_config.get("General", "dateFormat"),
     log_file=_logging_config.get("File", "name"),
-    log_file_path=_log_path if _log_path != None else os.path.join(os.path.dirname(__file__).replace("modules", "docs/logs")), # If The Path Is Not Set, Use The Default Path
+    log_file_path=_log_path,
     levelsShown=_logging_config.get("General", "levelsShown").split("/"), # Turn The String Into A List Using "/" As The Delimiter
     use_color=_logging_config.getboolean("General", "useColor")
 )
@@ -41,7 +42,7 @@ def running_time(func: Callable[..., Any]) -> Callable[..., Any]:
         start_time = time.perf_counter() # Create A Start Time
         value = func(*args, **kwargs) # Run The Function And Store The Return Value
         end_time = time.perf_counter() # Create An End Time
-        logging.write(f"{func.__name__} Completed In {end_time - start_time} Seconds.", lvl=logger.Logger.DEBUG) # Log The Total Time
+        _logging.write(f"{func.__name__} Completed In {end_time - start_time} Seconds.", lvl=_logging.DEBUG) # Log The Total Time
 
         return value # Return The Return Value
 
