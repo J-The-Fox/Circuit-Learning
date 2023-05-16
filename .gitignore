@@ -140,3 +140,6 @@ dmypy.json
 # Sublime Text stuff
 .sublime-workspace
 .sublime-project
+
+# Old Files
+.old/
