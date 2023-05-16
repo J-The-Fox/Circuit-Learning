@@ -4,27 +4,23 @@ Helps With Logging By Writing To A File And / Or The Terminal
 Note: This Module Will Use Colorama To Color The Text In The Terminal.  
 If It Is Not Installed, Color Will Not Be Used.
 
-Version: 0.2.0-dev1
+Version: 0.2.1
 """
 
-# TODO: Add A Time And Date Format [ ]
-# TODO: Add A Way To Change The Log File Name And Location [ ]
-# TODO: Add A Size Limit To The Log File [ ]
-
-# NOTE: v0.2 Is Going Be A Larger Update Than v0.1, So It Will Take Longer To Finish
-
 # Built-In Modules
-import datetime
-import os
-import inspect
+import datetime as _datetime
+import os as _os
+import inspect as _inspect
 
 _IMPORTERROR = []
 
 # External Modules
 try:
-    import colorama
+    import colorama as _colorama
 except ImportError:
     _IMPORTERROR.append("colorama")
+
+__version__ = "0.2.1"
 
 # Logger Class
 class Logger():
@@ -59,8 +55,14 @@ class Logger():
     - lvl (Log Level)
     - msg (Message)
 
+
     A format like ['dt', 'lvl', 'msg'] would be displayed as: '+ 2023-01-20 10:49:26.358819 - [INFO] - Message Passed Through'  
-    Note: A Time and Date Format Is In The Works, But Is Not Ready Yet.
+
+    Date Format:
+    
+    This format is the same as the strftime() function in the datetime module.
+
+    A format of "%Y-%m-%d %H:%M:%S.%f" would be displayed as: '2023-01-20 10:49:26.358819'
 
     Log Levels:
 
@@ -103,16 +105,18 @@ class Logger():
     OVERWRITE = "w" # Default
 
     # Version
-    VERSION = "0.2.0-dev1"
+    VERSION = "0.2.1"
 
-    def __init__(self, mode: int, write_mode: str = "w", format: list = ["dt", "lvl", "msg"], log_file: str = "main.log", log_file_path: str = None, maxSize: int = 100000, levelsShown = [BUG, DEBUG, INFO, NOTICE, WARN, ERROR, CRITICAL], use_color: bool = True) -> None:
+    def __init__(self, mode: int, write_mode: str = "w", format: list = ["dt", "lvl", "msg"], date_format: str = "%Y-%m-%d %H:%M:%S.%f", log_file: str = "main.log", log_file_path: str = None, maxSize: int = 100000, levelsShown = [BUG, DEBUG, INFO, NOTICE, WARN, ERROR, CRITICAL], use_color: bool = True) -> None:
         # Check If The log_file_path Is None, If It Is, Set It To The Current Directory
         if log_file_path is None:
-            self.log_file_path = os.path.join(os.path.dirname(__file__), log_file)
+            self.log_file_path = _os.path.join(_os.path.dirname(__file__), log_file)
         else:
-            self.log_file_path = os.path.join(log_file_path, log_file)
+            self.log_file_path = _os.path.join(log_file_path, log_file)
         self.log_file = log_file
         self.maxSize = maxSize
+
+        self.date_format = date_format
 
         self.mode = mode
         self.write_mode = write_mode
@@ -145,27 +149,30 @@ class Logger():
                 logfile.close()
 
         # If The User Has Selected To Log To The Terminal, Log The Initilization Text And Configuration Information
-        if log_text:
-            if os.path.getsize(self.log_file_path) > self.maxSize:
-                with open(self.log_file_path, "w") as f:
-                    f.write("")
-                    f.close()
-                self.write("The Log File Is Greater Than The Maximum Size Allowed, Overwriting The Log File", self.WARN)
-            self.write("Logger Version: " + self.VERSION, self.INFO)
+        if log_text is not True:
+            return
+        
+        if _os.path.getsize(self.log_file_path) > self.maxSize:
+            with open(self.log_file_path, "w") as f:
+                f.write("")
+                f.close()
+            self.write("The Log File Is Greater Than The Maximum Size Allowed, Overwriting The Log File", self.WARN)
+        self.write("Logger Version: " + self.VERSION, self.INFO)
 
-            self.write("====================================[ Logging Config ]====================================", self.INFO)
-            self.write(f"Log Mode: {self.mode}", self.INFO)
-            self.write(f"Write Mode: {self.write_mode}", self.INFO)
-            self.write(f"Format: {self.format}", self.INFO)
-            self.write(f"Log File: {self.log_file}", self.INFO)
-            self.write(f"Log File Path: {self.log_file_path}", self.INFO)
-            self.write(f"Levels Shown: {self.levelsShown}", self.INFO)
-            self.write(f"Use Color: {self.use_color}", self.INFO)
-            self.write("==========================================================================================", self.INFO)
+        self.write("====================================[ Logging Config ]====================================", self.DEBUG)
+        self.write(f"Log Mode: {self.mode}", self.DEBUG)
+        self.write(f"Write Mode: {self.write_mode}", self.DEBUG)
+        self.write(f"Format: {self.format}", self.DEBUG)
+        self.write(f"Log File: {self.log_file}", self.DEBUG)
+        self.write(f"Log File Path: {self.log_file_path}", self.DEBUG)
+        self.write(f"Levels Shown: {self.levelsShown}", self.DEBUG)
+        self.write(f"Use Color: {self.use_color}", self.DEBUG)
+        self.write("==========================================================================================", self.DEBUG)
+
+        return
 
         # If the user is only writting to the terminal, no need to create a new log file, just skip creating / clearing on the init
         # if self.mode == 2:
-        return
 
     def write(self, msg: str, lvl: str, extra_msg: str = None) -> None:
         """
@@ -182,7 +189,7 @@ class Logger():
 
         output_string = ""
         # Use The Formatting Provided In The init Function and Create The Log String
-        format_list = self.__parse_format__(msg, lvl)
+        format_list = self.__parse_format(msg, lvl)
 
         # If The Level Provided Is Not In The Levels Shown List, Return
         if "ART" in str(format_list) and "ART" not in self.levelsShown:
@@ -212,7 +219,7 @@ class Logger():
         if self.mode == 2:
             with open(self.log_file_path, "a") as logfile:
                 if self.use_color is True:
-                    logfile.write(output_string.join(format_list).replace(colorama.Fore.RESET, "").replace(colorama.Fore.WHITE, "").replace(colorama.Fore.BLUE, "").replace(colorama.Fore.CYAN, "").replace(colorama.Fore.LIGHTYELLOW_EX, "").replace(colorama.Fore.LIGHTRED_EX, "").replace(colorama.Fore.LIGHTBLACK_EX, "").replace(colorama.Fore.LIGHTGREEN_EX, "").replace(colorama.Fore.LIGHTMAGENTA_EX, "") + "\n")
+                    logfile.write(output_string.join(format_list).replace(_colorama.Fore.RESET, "").replace(_colorama.Fore.WHITE, "").replace(_colorama.Fore.BLUE, "").replace(_colorama.Fore.CYAN, "").replace(_colorama.Fore.LIGHTYELLOW_EX, "").replace(_colorama.Fore.LIGHTRED_EX, "").replace(_colorama.Fore.LIGHTBLACK_EX, "").replace(_colorama.Fore.LIGHTGREEN_EX, "").replace(_colorama.Fore.LIGHTMAGENTA_EX, "") + "\n")
                 else:
                     logfile.write(output_string.join(format_list) + "\n")
                 if extra_msg is not None and lvl == "NOTICE" or extra_msg is not None and lvl == "WARN" or extra_msg is not None and lvl == "WARNING" or extra_msg is not None and lvl == "ERROR" or extra_msg is not None and lvl == "CRITICAL":
@@ -222,7 +229,7 @@ class Logger():
         if self.mode == 3:
             with open(self.log_file_path, "a") as logfile:
                 if self.use_color is True:
-                    logfile.write(output_string.join(format_list).replace(colorama.Fore.RESET, "").replace(colorama.Fore.WHITE, "").replace(colorama.Fore.BLUE, "").replace(colorama.Fore.CYAN, "").replace(colorama.Fore.LIGHTYELLOW_EX, "").replace(colorama.Fore.LIGHTRED_EX, "").replace(colorama.Fore.LIGHTBLACK_EX, "").replace(colorama.Fore.LIGHTGREEN_EX, "").replace(colorama.Fore.LIGHTMAGENTA_EX, "") + "\n")
+                    logfile.write(output_string.join(format_list).replace(_colorama.Fore.RESET, "").replace(_colorama.Fore.WHITE, "").replace(_colorama.Fore.BLUE, "").replace(_colorama.Fore.CYAN, "").replace(_colorama.Fore.LIGHTYELLOW_EX, "").replace(_colorama.Fore.LIGHTRED_EX, "").replace(_colorama.Fore.LIGHTBLACK_EX, "").replace(_colorama.Fore.LIGHTGREEN_EX, "").replace(_colorama.Fore.LIGHTMAGENTA_EX, "") + "\n")
                 else:
                     logfile.write(output_string.join(format_list) + "\n")
                 print(output_string.join(format_list))
@@ -243,13 +250,13 @@ class Logger():
         """
 
         if exit_reason is None and exit_process is None:
-            self.write(msg=f"[logger-close]: {inspect.stack()[1][1]} Exited With Code {exit_code}.", lvl=Logger.INFO)
+            self.write(msg=f"{_inspect.stack()[1][1]} Exited With Code {exit_code}.", lvl=Logger.INFO)
         elif exit_reason is None:
-            self.write(msg=f"[logger-close]: {exit_process} Exited With Code {exit_code}.", lvl=Logger.INFO)
+            self.write(msg=f"{exit_process} Exited With Code {exit_code}.", lvl=Logger.INFO)
         elif exit_process is None:
-            self.write(msg=f"[logger-close]: {inspect.stack()[1][1]} Exited With Code {exit_code}. Reason: {exit_reason}", lvl=Logger.INFO)
+            self.write(msg=f"{_inspect.stack()[1][1]} Exited With Code {exit_code}. Reason: {exit_reason}", lvl=Logger.INFO)
         else:
-            self.write(msg=f"[logger-close]: {exit_process} Exited With Code {exit_code}. Reason: {exit_reason}", lvl=Logger.INFO)
+            self.write(msg=f"{exit_process} Exited With Code {exit_code}. Reason: {exit_reason}", lvl=Logger.INFO)
         return
     
     def get_format(self) -> str:
@@ -300,32 +307,32 @@ class Logger():
 
         return self.log_file
     
-    # Private Functions
-    def __parse_format__(self, msg, lvl) -> list:
+    # Private Functions #
+    def __parse_format(self, msg, lvl) -> list:
         format_list = ["+ "]
 
         # Use The Formatting Provided In The init Function and Create The Log
         index = 0
         for format_data in self.format: # Loop Through The Format List
             if str(format_data).capitalize() == "Dt":
-                format_list.append(str(datetime.datetime.now())) # Add The Current Date And Time
+                format_list.append(str(_datetime.datetime.now().strftime(self.date_format))) # Add The Current Date And Time
             if str(format_data).capitalize() == "Msg":
                 format_list.append(msg) # Add The Message
             if str(format_data).capitalize() == "Lvl" and self.use_color is True:
                 if lvl == "ART": # If The Level Is ART, Make It Grey:
-                    format_list.append(f"[{colorama.Fore.LIGHTBLACK_EX}{lvl}{colorama.Fore.RESET}]")
+                    format_list.append(f"[{_colorama.Fore.LIGHTBLACK_EX}{lvl}{_colorama.Fore.RESET}]")
                 if lvl == "BUG": # If The Level Is BUG, Make It Green
-                    format_list.append(f"[{colorama.Fore.LIGHTGREEN_EX}{lvl}{colorama.Fore.RESET}]")
+                    format_list.append(f"[{_colorama.Fore.LIGHTGREEN_EX}{lvl}{_colorama.Fore.RESET}]")
                 elif lvl == "DEBUG": # If The Level Is DEBUG, Make It Blue
-                    format_list.append(f"[{colorama.Fore.BLUE}{lvl}{colorama.Fore.RESET}]")
+                    format_list.append(f"[{_colorama.Fore.BLUE}{lvl}{_colorama.Fore.RESET}]")
                 elif lvl == "INFO": # If The Level Is INFO, Make It Cyan
-                    format_list.append(f"[{colorama.Fore.CYAN}{lvl}{colorama.Fore.RESET}]")
+                    format_list.append(f"[{_colorama.Fore.CYAN}{lvl}{_colorama.Fore.RESET}]")
                 elif lvl == "NOTICE": # If The Level Is NOTICE, Make It Magenta
-                    format_list.append(f"[{colorama.Fore.LIGHTMAGENTA_EX}{lvl}{colorama.Fore.RESET}]")
+                    format_list.append(f"[{_colorama.Fore.LIGHTMAGENTA_EX}{lvl}{_colorama.Fore.RESET}]")
                 elif "WARN" in lvl: # If The Level Is WARN or WARNING, Make It Yellow
-                    format_list.append(f"[{colorama.Fore.LIGHTYELLOW_EX}{lvl}{colorama.Fore.RESET}]")
+                    format_list.append(f"[{_colorama.Fore.LIGHTYELLOW_EX}{lvl}{_colorama.Fore.RESET}]")
                 elif lvl == "ERROR" or lvl == "CRITICAL": # If The Level Is ERROR or CRITICAL, Make It Red
-                    format_list.append(f"[{colorama.Fore.LIGHTRED_EX}{lvl}{colorama.Fore.RESET}]")
+                    format_list.append(f"[{_colorama.Fore.LIGHTRED_EX}{lvl}{_colorama.Fore.RESET}]")
             elif str(format_data).capitalize() == "Lvl":
                 format_list.append(f"[{lvl}]") # Add The Level
             index += 1
@@ -334,3 +341,4 @@ class Logger():
             if index == 2:
                 format_list.append(": ")
         return format_list
+    
