@@ -1,135 +1,199 @@
 # Built-In Modules
 import os
+import json
+import hashlib
+import platform
 import datetime
 import configparser
 # External Modules
-import colorama
-import pygame
+try:
+    import pygame
+except ImportError:
+    pass
+try:
+    import pygame_gui # Not Used As pygame_gui Has No Way To Get A Version Without Checking Through Python Itself
+except ImportError:
+    pass
+try:
+    import psutil
+except ImportError:
+    pass
+try:
+    import requests
+except ImportError:
+    pass
 # Custom Modules
 import logger
 
-__all__ = ["Debug"]
+__all__ = ["Debug", "generate_debug_log"]
+
+__version__ = "0.1.7"
 
 # -----=====[Set Up Configuration]=====----- #
 _logging_config = configparser.ConfigParser()
 _logging_config.read(os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "configuration", "Logger.conf"))
+_debug_config = configparser.ConfigParser()
+_debug_config.read(os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "configuration", "Debug.conf"))
+_main_config = configparser.ConfigParser()
+_main_config.read(os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "configuration", "Main.conf"))
 
 # -----=====[Set Up Logging]=====----- #
 try:
     _log_path = _logging_config.get("File", "path") # Check If A Log File Path Is Set In The Config File
-except configparser.NoOptionError:
-    _log_path = None
+except configparser.NoOptionError: # If The Path Is Not Set, Use The Default Path
+    _log_path = os.path.join(os.path.dirname(__file__).replace("modules", "docs"), "logs")
 
 _logging = logger.Logger(
     mode=_logging_config.getint("General", "logMode"),
     write_mode=_logging_config.get("General", "writeMode"),
     format=str(_logging_config.get("General", "format")).split("/"), # Turn The String Into A List Using "/" As The Delimiter
+    date_format=_logging_config.get("General", "dateFormat"),
     log_file=_logging_config.get("File", "name"),
-    log_file_path=_log_path if _log_path != None else os.path.join(os.path.dirname(__file__).replace("modules", "docs/logs")), # If The Path Is Not Set, Use The Default Path
+    log_file_path=_log_path,
     levelsShown=_logging_config.get("General", "levelsShown").split("/"), # Turn The String Into A List Using "/" As The Delimiter
     use_color=_logging_config.getboolean("General", "useColor")
 )
 
-class Debug():
+
+def generate_debug_log(file_name = None, file_path = "docs/logs", extra_info = None):
     """
-    Debug Class
+    Generates A Debug Log
+
+    Arguments:
+        file_name (str) - The Log File Name
+        file_path (str) - The Log File Path
     """
 
-    def __init__(self, font: pygame.font.Font, textSpacing: int, textColor: str, backgroundTextColor: str, debugTextScreenLocation: str | int, debugLogScreenLocation: str | int, logfile: str):
+    _logging.write("Generating Debug Log...", lvl=logger.Logger.INFO)
 
-        # Parse The Screen Location of The Debug Text and Debug Log #
-        # Debug Text
-        if str(debugTextScreenLocation).capitalize() == "1" or str(debugTextScreenLocation).capitalize() == "Topleft" or str(debugTextScreenLocation).capitalize() == "Top left":
-            self.debugTextLocation = '1'
-        elif str(debugTextScreenLocation).capitalize() == "2" or str(debugTextScreenLocation).capitalize() == "Topright" or str(debugTextScreenLocation).capitalize() == "Top right":
-            self.debugTextLocation = '2'
-        else:
-            self.debugTextLocation = None
-            _logging.write("[class-debug]: Invalid or No Location Given", lvl=logger.Logger.ERROR)
-            return
-        # Debug Log
-        if str(debugLogScreenLocation).capitalize() == "1" or str(debugLogScreenLocation).capitalize() == "Topleft" or str(debugLogScreenLocation).capitalize() == "Top left":
-            self.debugLogLocation = '1'
-        elif str(debugLogScreenLocation).capitalize() == "2" or str(debugLogScreenLocation).capitalize() == "Topright" or str(debugLogScreenLocation).capitalize() == "Top right":
-            self.debugLogLocation = '2'
-        else:
-            self.debugLogLocation = None
-            _logging.write("[class-debug]: Invalid or No Location Given", lvl=logger.Logger.ERROR)
-            return
 
-        self.font = font
-        self.textSpacing = textSpacing
-        self.textColor = textColor
-        self.backgroundColor = backgroundTextColor
-        self.logfile = logfile
+    if file_name is None:
+        file_name = "debug_log_{}.log".format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
-    def displayDebugText(self, enabled: bool, msg: str | list):
-        """
-        Displays Debug Messages To The Screen
+    with open(os.path.join(file_path, file_name), 'a') as debug_log:
+        debug_log.write("============================================================\n")
 
-        Arguments:
-            enabled (bool) - If True, The Debug Text Will Be Displayed
-            msg (str | list) - The Message To Be Displayed
-        """
+        # Date And Time Of Creation
+        debug_log.write("This Debug Log Was Generated On: " + str(datetime.datetime.now()) + "\n")
+        debug_log.write("============================================================\n")
 
-        if enabled != True: # If Debug Text Is Disabled, Return
-            return
+        # App Information
+        debug_log.write("App Information:\n")
+        debug_log.write("    Version: " + str(_main_config.getint("Version", "major")) + "." + str(_main_config.getint("Version", "minor")) + "." + str(_main_config.getint("Version", "bugFix")) + "\n")
+        debug_log.write("    Build: " + str(_main_config.get("Version", "Build")) + "\n")
+        debug_log.write("============================================================\n")
 
-        if isinstance(msg, str): # If msg Is Of Type 'str'
-            displaySurface = pygame.display.get_surface() # Get The Display Surface
-            debugSurf = self.font.render(str(msg), True, self.textColor) # Render The Debug Text
-            debugRect = debugSurf.get_rect(topleft = (10, 10)) # Get The Debug Text Rect
-            pygame.draw.rect(displaySurface, self.backgroundColor, debugRect) # Draw A Background Rect
-            displaySurface.blit(debugSurf, debugRect) # Blit The Debug Text To The Display Surface
+        # OS Information
+        debug_log.write("OS Information:\n")
+        debug_log.write("    OS: " + str(platform.system()) + "\n")
+        if platform.system() == "Windows":
+            debug_log.write("    Windows Version: " + str(platform.win32_ver()) + "\n")
+            debug_log.write("    Windows Edition: " + str(platform.win32_edition()) + "\n")
+        elif platform.system() == "Darwin":
+            debug_log.write("    Mac Version: " + str(platform.mac_ver()[0]) + "\n")
+        debug_log.write("    Architecture: " + str(platform.architecture()[0]) + "\n")
+        debug_log.write("============================================================\n")
 
-        elif isinstance(msg, list): # If msg Is Of Type 'list'
-            count = 0 # Count Variable
-            displaySurfuce = pygame.display.get_surface() # Get The Display Surface
-            for text in msg: # For Each Item In The List
-                debugSurf = self.font.render(str(text), True, self.textColor) # Render The Debug Text
-                debugRect = debugSurf.get_rect(topleft = (10, 10 + count)) # Get The Debug Text Rect
-                pygame.draw.rect(displaySurfuce, self.backgroundColor, debugRect) # Draw A Background Rect
-                displaySurfuce.blit(debugSurf, debugRect) # Blit The Debug Text To The Display Surface
-
-                count += self.textSpacing
-
-    def displayLog(self, enabled: bool, textBoxSize: tuple):
-        """
-        Displays A Log File Or A Text Document To The Screen
-
-        Arguments:
-            enabled (bool) - If True, The Log Will Be Displayed
-            textBoxSize (tuple) - The Size Of The Text Box
-        """
-
-        if enabled != True: # If Debug Log Is Disabled, Return
-            return
-
-        _textLogList = [] # List To Store The Log File
-
-        surface = pygame.display.get_surface() # Get The Display Surface
-        
-        # Try To Open The Log File, If It Fails, Return
+        # System Utilization Information At The Creation Of The Debug Log
+        debug_log.write("System Utilization Information:\n")
         try:
-            with open(self.logfile, 'r') as logFileHandler:
-                for _line in logFileHandler:
-                    _textLogList.append(_line)
-                logFileHandler.close()
-        except FileNotFoundError:
-            print(f"x {str(datetime.datetime.now())} - [{colorama.Fore.RED}ERROR{colorama.Fore.RESET}] - The Log File Doesn't Exist") 
-            print(f"╰─> The File {self.logfile} Does Not Exist.")
-            return
-
-        _logSurface = pygame.Surface((textBoxSize[0], textBoxSize[1])).convert_alpha() # Create A Surface For The Log
-        _logSurface.fill((10, 10, 10, 100)) # Fill The Surface With A Transparent Color
-
+            debug_log.write("    CPU Usage: " + str(psutil.cpu_percent()) + "%\n")
+            debug_log.write("    Memory Usage: " + str(psutil.virtual_memory().percent) + "%\n")
+            debug_log.write("    Disk Usage: " + str(psutil.disk_usage("/").percent) + "%\n")
+        except NameError:
+            debug_log.write("    CPU Usage: psutil Not Installed.\n")
+            debug_log.write("    Memory Usage: psutil Not Installed.\n")
+            debug_log.write("    Disk Usage: psutil Not Installed.\n")
+        debug_log.write("============================================================\n")
         
-        lineNum = 0
-        if self.debugLogLocation == "1":
-            surface.blit(_logSurface, (0, 0))
-        elif self.debugLogLocation == "2":
-            surface.blit(_logSurface, (pygame.display.get_window_size()[0] - textBoxSize[0], 0))
-            for _text in reversed(_textLogList[:]):
-                if lineNum < _logSurface.get_height():
-                    surface.blit(self.font.render(str(_text).replace("\n", ""), True, "Orange"), (pygame.display.get_window_size()[0] - _logSurface.get_width() + 10, _logSurface.get_height() - 20 - lineNum))
-                    lineNum += self.font.get_height()
+        # Python Information
+        debug_log.write("Python Information:\n")
+        debug_log.write("    Python Version: " + str(platform.python_version()) + "\n")
+        debug_log.write("    Python Build: " + str(platform.python_build()[0].split(":")[1]) + ", " + str(platform.python_build()[1]) + "\n")
+        debug_log.write("    Python Branch: " + str(platform.python_branch()) + "\n")
+        debug_log.write("    Python Compiler: " + str(platform.python_compiler()) + "\n")
+        debug_log.write("    Python Implementation: " + str(platform.python_implementation()) + "\n")
+        debug_log.write("============================================================\n")
+
+        # Python Package Information
+        debug_log.write("Python Package Information:\n")
+        try:
+            debug_log.write("    psutil Version: " + str(psutil.__version__) + "\n")
+        except NameError:
+            debug_log.write("    psutil Version: psutil Not Installed.\n")
+        try:
+            debug_log.write("    pygame Version: " + str(pygame.version.ver) + "\n")
+        except NameError:
+            debug_log.write("    pygame Version: pygame Not Installed.\n")
+        debug_log.write("    pygame-gui Version: No Version Info. \n")
+        try:
+            debug_log.write("    requests Version: " + str(requests.__version__) + "\n")
+        except NameError:
+            debug_log.write("    requests Version: requests Not Installed.\n")
+        debug_log.write("    -----------------------\n")
+        debug_log.write("    logger Version: " + str(logger.__version__) + "\n")
+        debug_log.write("    debug Version: " + str(__version__) + "\n")
+        debug_log.write("============================================================\n")
+
+        # Grab The Last Lines Of The Log File. Set From The Config File: Debug.conf. Default Is 100 Lines
+        debug_log.write("Last " + str(_debug_config.getint("DebugLog", "logLines")) + " Lines Of The Log File:\n")
+        with open(os.path.join(_log_path, _logging_config.get("File", "name")), 'r') as log_file:
+            _log_file = log_file.readlines()
+            _log_file = _log_file[-_debug_config.getint("DebugLog", "logLines"):]
+            for _line in _log_file:
+                debug_log.write(_line)
+            log_file.close()
+        debug_log.write("============================================================\n")
+
+        # File Hashes (To See If Files Have Been Modified)
+
+        # For Each File In The Modules Directory, Generate A Hash And Store It In A Dictionary
+        debug_log.write("File Hashes:\n")
+        new_files = []
+        new_hashes = {}
+        for root, dirs, files in os.walk(os.path.dirname(__file__)):
+            for file in files:
+                if str(file).endswith(".pyc") is False:
+                    new_files.append(file)
+                    new_hashes[file] = hashlib.md5(open(os.path.join(root, file), 'rb').read()).hexdigest()
+                    # debug_log.write("    " + str(file) + ": " + str(hashlib.md5(open(os.path.join(root, file), 'rb').read()).hexdigest()) + "\n")
+
+        # Open The Hash File
+        with open(os.path.join(os.path.dirname(__file__).replace("modules", "docs"), ".cache", "hashes.json")) as json_file:
+            hashes = json.load(json_file)
+            json_file.close()
+        
+        # Compare Each Of The Hashes To The New Hashes. 
+        # If They Are Different, The File Has Been Modified. 
+        # If The File Is Not In The Old Hashes, It Is A New File
+        for file in new_files:
+            try:
+                if hashes[file] != new_hashes[file]:
+                    debug_log.write("    (Modified) " + str(file) + ": " + str(hashes[file]) + " -> " + str(new_hashes[file]) + "\n")
+                else:
+                    debug_log.write("    (Unchaged) " + str(file) + ": " + str(hashes[file]) + "\n")
+            except KeyError:
+                debug_log.write("    (New File) " + str(file) + ": " + str(new_hashes[file]) + "\n")
+
+
+        debug_log.write("============================================================\n")
+
+
+        # Extra Information That Can Be Passed In (Stuff Like Errors, Exceptions, Etc.)
+        debug_log.write("Extra Information:\n")
+        if extra_info is not None:
+            debug_log.write(extra_info + "\n")
+        else:
+            debug_log.write("    None Provided\n")
+        debug_log.write("============================================================\n")
+
+
+        debug_log.write("End Of Debug Log \n")
+
+        debug_log.close()
+
+    _logging.write("Finished Generating Debug Log", lvl=logger.Logger.INFO)
+    _logging.write("Saved Debug Log To: " + str(os.path.join(file_path, file_name)), lvl=logger.Logger.INFO)
+
+if __name__ == "__main__":
+    generate_debug_log()
