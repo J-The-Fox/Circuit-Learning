@@ -1,0 +1,15 @@
+{
+    "background": {
+        "main_color": "#000000",
+        "secondary_color": "#111111"
+    },
+    "text": {
+        "main_color": "#ffffff",
+        "second_color": "#ffffff"
+    },
+    "button": {
+        "main_color": "#ffffff",
+        "text_color": "#000000",
+        "shadow_color": "#000000"
+    }
+}
