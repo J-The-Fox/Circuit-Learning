@@ -20,7 +20,7 @@ import _thread
 import pygame # https://www.pygame.org/, https://github.com/pygame/pygame/, https://pypi.org/project/pygame/, 
 import psutil # https://pypi.org/project/psutil/
 import pygame_gui # https://github.com/MyreMylar/pygame_gui, https://pypi.org/project/pygame-gui/
-import pygame_widgets
+import pygame_widgets # https://pypi.org/project/pygame-widgets/
 # Custom Modules
 import logger
 import button
