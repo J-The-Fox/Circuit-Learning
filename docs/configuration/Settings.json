@@ -1,11 +1,3 @@
 {
-    "theme" : "dark",
-    "accentColor" : "243,156,41",
-    "sound" : "true",
-    "music" : "true",
-    "language" : "en",
-    "debugOptions" : "false",
-    "showDebug" : "false",
-    "showConsole" : "false",
-    "test" : "243,156,41"
+    "theme" : "dark"
 }
