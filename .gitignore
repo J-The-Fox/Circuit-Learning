@@ -143,3 +143,7 @@ dmypy.json
 
 # Old Files
 .old/
+
+# MacOS Finder Cache
+._*
+.DS_Store
